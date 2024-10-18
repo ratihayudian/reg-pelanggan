@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrasi Pelanggan Naratel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
+    <style>
+        #dropbox {
+            width: 300px;
+            height: 300px;
+            border: 2px dashed #ccc;
+            text-align: center;
+            line-height: 300px; /* Agar teks/gambar berada di tengah */
+            font-family: Arial, sans-serif;
+            color: #aaa;
+            cursor: pointer;
+        }
+        #dropbox img {
+            max-width: 100%;
+            max-height: 100%;
+            display: none; /* Mulanya sembunyikan gambar */
+        }
+        #thumbnail {
+            margin-top: 20px;
+            max-width: 150px; /* Mengatur lebar maksimum untuk thumbnail */
+            max-height: 100px; /* Mengatur tinggi maksimum untuk thumbnail */
+            display: none; /* Mulanya sembunyikan thumbnail */
+        }
+        #cropperContainer {
+            display: none; /* Tersembunyi hingga gambar dipilih */
+            margin-top: 20px;
+            width: 300px; /* Lebar kontainer cropper */
+            height: 200px; /* Tinggi kontainer cropper */
+            position: relative; /* Agar cropper berfungsi dengan baik */
+        }
+        #cropImage {
+            max-width: 100%; /* Mengatur lebar maksimum untuk crop image */
+            max-height: 100%; /* Mengatur tinggi maksimum untuk crop image */
+        }
+        #cropButton, #rotateButton {
+            margin-top: 10px; /* Ruang antara tombol */
+            padding: 5px 10px; /* Ukuran tombol */
+            font-size: 14px; /* Ukuran font pada tombol */
+        }
+        #cropResult {
+            margin-top: 20px;
+        }
+        #resultImage {
+            max-width: 150px; /* Ukuran maksimum untuk hasil crop thumbnail */
+            max-height: 100px; /* Ukuran maksimum untuk hasil crop thumbnail */
+        }
+    </style>
+</head>
+<body>
+    <h2>Registrasi Pelanggan Naratel</h2>
+
+    <form>
+        <input type="file" id="input" name="input_file" accept="image/*" onchange="previewImage(this)" capture="environment" style="display: none;"/>
+        <button type="button" id="cameraButton">Ambil Foto dengan Kamera</button>
+        <button type="button" id="fileButton">Pilih File</button>
+    </form>
+
+    <div id="dropbox">
+        Drop your file here
+        <img id="image" src="" alt="Dropped Image"/>
+    </div>
+
+    <!-- Elemen untuk thumbnail -->
+    <img id="thumbnail" src="" alt="Thumbnail"/>
+
+    <!-- Kontainer untuk Cropper -->
+    <div id="cropperContainer">
+        <img id="cropImage" src="" alt="Crop Image"/>
+        <button id="rotateButton">Rotate</button> <!-- Tombol rotasi -->
+        <button id="cropButton">Crop</button>
+    </div>
+
+    <!-- Elemen untuk hasil crop -->
+    <div id="cropResult">
+        <h3>Hasil Crop:</h3>
+        <img id="resultImage" src="" alt="Cropped Image" />
+    </div>
+
+    <!-- Tambahkan elemen video untuk streaming dari kamera -->
+    <video id="video" width="300" height="300" autoplay style="display: none;"></video>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <script type="text/javascript">
+        let dropbox = document.getElementById("dropbox");
+        let image = document.getElementById("image");
+        let inputFile = document.getElementById("input");
+        let thumbnail = document.getElementById("thumbnail");
+        let cropperContainer = document.getElementById("cropperContainer");
+        let cropImage = document.getElementById("cropImage");
+        let cropButton = document.getElementById("cropButton");
+        let rotateButton = document.getElementById("rotateButton");
+        let resultImage = document.getElementById("resultImage");
+        let video = document.getElementById("video");
+        let cameraButton = document.getElementById("cameraButton");
+        let fileButton = document.getElementById("fileButton");
+        let cropper;
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropbox.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Handle drop event
+        dropbox.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            preventDefaults(e); // Cegah perilaku default saat drop
+            let dt = e.dataTransfer;
+            let files = dt.files;
+
+            // Assign the dropped file to the input element
+            inputFile.files = files;
+
+            // Preview the image (if it's an image file)
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                displayImage(files[0]); // Tampilkan gambar
+            }
+        }
+
+        // Fungsi untuk menampilkan gambar
+        function displayImage(file) {
+            let reader = new FileReader();
+            reader.onload = function(event) {
+                image.src = event.target.result; // Set src untuk #image
+                image.style.display = 'block'; // Tampilkan gambar
+                dropbox.innerText = ''; // Hilangkan teks 'Drop your file here'
+                
+                // Tampilkan thumbnail
+                thumbnail.src = event.target.result; // Set src untuk thumbnail
+                thumbnail.style.display = 'block'; // Tampilkan thumbnail
+                
+                // Tampilkan cropper
+                cropperContainer.style.display = 'block';
+                cropImage.src = event.target.result; // Set src untuk cropper image
+                if (cropper) {
+                    cropper.destroy(); // Hancurkan cropper sebelumnya jika ada
+                }
+                cropper = new Cropper(cropImage, {
+                    aspectRatio: 16 / 9, // Rasio pemangkasan (ubah sesuai kebutuhan)
+                    viewMode: 1,
+                });
+            };
+            reader.readAsDataURL(file); // Baca file gambar
+        }
+
+        // Fungsi untuk pratinjau gambar saat memilih file
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                displayImage(input.files[0]); // Tampilkan gambar
+            }
+        }
+
+        // Handle click on the dropbox to open file dialog
+        dropbox.addEventListener('click', function() {
+            inputFile.click();
+        });
+
+        // Tombol untuk membuka dialog file
+        fileButton.addEventListener('click', function() {
+            inputFile.click();
+        });
+
+        // Crop gambar dan tampilkan hasilnya
+        cropButton.addEventListener('click', function() {
+            const canvas = cropper.getCroppedCanvas(); // Ambil canvas hasil crop
+            resultImage.src = canvas.toDataURL(); // Set src untuk hasil crop
+            resultImage.style.display = 'block'; // Tampilkan hasil crop
+        });
+
+        // Fungsi untuk rotasi gambar
+        rotateButton.addEventListener('click', function() {
+            cropper.rotate(90); // Rotasi gambar 90 derajat
+        });
+
+        // Fungsi untuk memulai kamera
+        cameraButton.addEventListener('click', function() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function(stream) {
+                        video.srcObject = stream;
+                        video.style.display = 'block'; // Tampilkan elemen video
+                        video.play();
+                        
+                        // Ambil snapshot dari video
+                        video.addEventListener('click', function() {
+                            let canvas = document.createElement('canvas');
+                            canvas.width = video.videoWidth;
+                            canvas.height = video.videoHeight;
+                            canvas.getContext('2d').drawImage(video, 0, 0);
+                            let imageData = canvas.toDataURL('image/png');
+                            
+                            // Tampilkan gambar dan thumbnail
+                            image.src = imageData;
+                            thumbnail.src = imageData;
+                            image.style.display = 'block'; // Tampilkan gambar
+                            thumbnail.style.display = 'block'; // Tampilkan thumbnail
+                            
+                            // Tampilkan cropper
+                            cropperContainer.style.display = 'block';
+                            cropImage.src = imageData; // Set src untuk cropper image
+                            if (cropper) {
+                                cropper.destroy(); // Hancurkan cropper sebelumnya jika ada
+                            }
+                            cropper = new Cropper(cropImage, {
+                                aspectRatio: 16 / 9, // Rasio pemangkasan (ubah sesuai kebutuhan)
+                                viewMode: 1,
+                            });
+                        });
+                    })
+                    .catch(function(error) {
+                        console.error("Error accessing camera: ", error);
+                    });
+            }
+        });
+    </script>
+</body>
+</html>
