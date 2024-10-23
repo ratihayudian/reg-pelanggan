@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrasi Pelanggan Naratel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
+    <style>
+        body {
+            background-image: url('https://img.freepik.com/free-vector/hand-drawn-flat-design-intranet-illustration_23-2149377876.jpg?t=st=1729586704~exp=1729590304~hmac=bf3f1e60df1b199b62b62e409cccff1d40492fdc21ae86dbeee56a46c5464c1a&w=740');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            height: 100vh;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+
+        .popup-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            transform: translateY(-100%);
+            animation: slideDown 0.5s forwards;
+            z-index: 2;
+        }
+
+        @keyframes slideDown {
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: black;
+        }
+
+        #fileButton, #cameraButton {
+            margin: 10px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        #fileButton:hover, #cameraButton:hover {
+            background-color: #0056b3;
+        }
+
+        #dropbox {
+            width: 300px;
+            height: 300px;
+            border: 2px dashed #ccc;
+            text-align: center;
+            line-height: 300px;
+            color: #aaa;
+            cursor: pointer;
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #cropperModal, #resultModal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        #popupContent, #resultPopupContent {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        #cropImage, #resultImagePopup {
+            max-width: 100%;
+            max-height: 400px;
+        }
+
+        #cropButton, #rotateButton {
+            margin-top: 10px;
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+
+        #closePopupBtn, #closeResultPopupBtn {
+            float: right;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .cropper-container {
+            max-width: 100% !important;
+            max-height: 300px !important;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background overlay -->
+    <div class="overlay">
+        <div class="popup-content">
+            <h2>Registrasi Pelanggan Naratel</h2>
+            <form>
+                <input type="file" id="inputFile" accept="image/*" onchange="previewImage(this)" style="display: none;">
+                <button type="button" id="fileButton">Pilih Gambar dari Galeri</button>
+                <input type="file" id="inputCamera" accept="image/*" capture="environment" onchange="previewImage(this)" style="display: none;">
+                <button type="button" id="cameraButton">Ambil Foto</button>
+            </form>
+            <div id="dropbox">
+                Drop your file here
+                <img id="image" src="" alt="Dropped Image" style="display:none;"/>
+            </div>
+        </div>
+    </div>
+
+    <div id="cropperModal">
+        <div id="popupContent">
+            <span id="closePopupBtn">&times;</span>
+            <h3>Penyesuaian Gambar</h3>
+            <div style="overflow:hidden; max-height:300px;">
+                <img id="cropImage" src="" alt="Crop Image"/>
+            </div>
+            <button id="rotateButton">Putar Gambar</button>
+            <button id="cropButton">Potong Gambar</button>
+        </div>
+    </div>
+
+    <div id="resultModal">
+        <div id="resultPopupContent">
+            <span id="closeResultPopupBtn">&times;</span>
+            <h3>Hasil:</h3>
+            <img id="resultImagePopup" src="" alt="Cropped Image" />
+            <button id="saveButton">Simpan Gambar</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <script type="text/javascript">
+        let inputFile = document.getElementById("inputFile");
+        let inputCamera = document.getElementById("inputCamera");
+        let fileButton = document.getElementById("fileButton");
+        let cameraButton = document.getElementById("cameraButton");
+        let cropImage = document.getElementById("cropImage");
+        let resultImagePopup = document.getElementById("resultImagePopup");
+        let cropperModal = document.getElementById("cropperModal");
+        let resultModal = document.getElementById("resultModal");
+        let closePopupBtn = document.getElementById("closePopupBtn");
+        let closeResultPopupBtn = document.getElementById("closeResultPopupBtn");
+        let cropper;
+        let croppedDataURL;
+
+        function displayImage(file) {
+            let reader = new FileReader();
+            reader.onload = function(event) {
+                cropImage.src = event.target.result;
+                cropperModal.style.display = 'flex';
+
+                if (cropper) {
+                    cropper.destroy();
+                }
+                cropper = new Cropper(cropImage, {
+                    aspectRatio: 16 / 9,
+                    viewMode: 1,
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                displayImage(input.files[0]);
+                document.querySelector('.overlay').style.display = 'none';
+            }
+        }
+
+        fileButton.addEventListener('click', function() {
+            inputFile.click();
+        });
+
+        cameraButton.addEventListener('click', function() {
+            inputCamera.click();
+        });
+
+        document.getElementById("cropButton").addEventListener('click', function() {
+            const canvas = cropper.getCroppedCanvas();
+            croppedDataURL = canvas.toDataURL();
+            resultImagePopup.src = croppedDataURL;
+
+            cropperModal.style.display = 'none';
+            resultModal.style.display = 'flex';
+        });
+
+        document.getElementById("rotateButton").addEventListener('click', function() {
+            cropper.rotate(90);
+        });
+
+        closePopupBtn.addEventListener('click', function() {
+            cropperModal.style.display = 'none';
+            document.querySelector('.overlay').style.display = 'flex';
+        });
+
+        closeResultPopupBtn.addEventListener('click', function() {
+            resultModal.style.display = 'none';
+            document.querySelector('.overlay').style.display = 'flex';
+        });
+    </script>
+</body>
+</html>
